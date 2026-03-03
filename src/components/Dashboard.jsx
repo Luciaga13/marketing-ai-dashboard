@@ -134,6 +134,8 @@ export default function Dashboard() {
   const [editMode, setEditMode]         = useState(false);
   const [activeBloque, setActiveBloque] = useState("contenido");
   const [tab, setTab]                   = useState("detalle");
+  const [newIniForm, setNewIniForm]     = useState(null);
+  // null = oculto; objeto = { nombre, herramientas, automatizacion, estado }
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
@@ -161,6 +163,25 @@ export default function Dashboard() {
     setHistory(h => [...h, newWeek]);
     setCurrentIdx(history.length);
     setEditMode(true);
+  };
+
+  const addIniciativa = (bloqueId, form) => {
+    if (!form.nombre.trim()) return;
+    const newIni = {
+      id: `custom_${Date.now()}`,
+      nombre: form.nombre.trim(),
+      herramientas: form.herramientas.trim(),
+      automatizacion: Math.min(100, Math.max(0, form.automatizacion)),
+      estado: form.estado,
+    };
+    setHistory(h => h.map((w, i) => i !== currentIdx ? w : {
+      ...w,
+      bloques: w.bloques.map(b => b.id !== bloqueId ? b : {
+        ...b,
+        iniciativas: [...b.iniciativas, newIni],
+      })
+    }));
+    setNewIniForm(null);
   };
 
   const bloque      = week.bloques.find(b => b.id === activeBloque);
@@ -257,7 +278,7 @@ export default function Dashboard() {
             + Nueva semana
           </button>
 
-          <button onClick={() => setEditMode(e => !e)} style={{
+          <button onClick={() => { setEditMode(e => !e); setNewIniForm(null); }} style={{
             background: editMode ? C.pink : "transparent",
             color: editMode ? "#fff" : C.pink,
             border: `1px solid ${C.pink}`, borderRadius: 8,
@@ -310,7 +331,7 @@ export default function Dashboard() {
               const avg = Math.round(b.iniciativas.reduce((s, i) => s + i.automatizacion, 0) / b.iniciativas.length);
               const isActive = activeBloque === b.id;
               return (
-                <button key={b.id} onClick={() => setActiveBloque(b.id)} style={pillBtn(isActive, b.color)}>
+                <button key={b.id} onClick={() => { setActiveBloque(b.id); setNewIniForm(null); }} style={pillBtn(isActive, b.color)}>
                   {b.nombre} · {avg}%
                 </button>
               );
@@ -375,6 +396,114 @@ export default function Dashboard() {
                         </tr>
                       );
                     })}
+
+                    {/* ── Fila formulario nueva iniciativa ── */}
+                    {editMode && newIniForm !== null && (
+                      <tr style={{
+                        borderBottom: `1px solid ${bloque.color}44`,
+                        background: `${bloque.color}0D`,
+                      }}>
+                        <td style={{ padding: "10px 16px" }}>
+                          <input
+                            autoFocus
+                            placeholder="Nombre de la iniciativa"
+                            value={newIniForm.nombre}
+                            onChange={e => setNewIniForm(f => ({ ...f, nombre: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") addIniciativa(bloque.id, newIniForm); if (e.key === "Escape") setNewIniForm(null); }}
+                            style={{
+                              width: "100%", border: `1px solid ${bloque.color}66`, borderRadius: 6,
+                              padding: "5px 8px", fontSize: 13, fontWeight: 600,
+                              background: C.cardAlt, color: C.textPri, fontFamily: "inherit",
+                              outline: "none",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "10px 16px" }}>
+                          <input
+                            placeholder="Herramientas utilizadas"
+                            value={newIniForm.herramientas}
+                            onChange={e => setNewIniForm(f => ({ ...f, herramientas: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter") addIniciativa(bloque.id, newIniForm); if (e.key === "Escape") setNewIniForm(null); }}
+                            style={{
+                              width: "100%", border: `1px solid ${C.borderHi}`, borderRadius: 6,
+                              padding: "5px 8px", fontSize: 12,
+                              background: C.cardAlt, color: C.textSec, fontFamily: "inherit",
+                              outline: "none",
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: "10px 16px", minWidth: 170 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                              type="number" min={0} max={100}
+                              value={newIniForm.automatizacion}
+                              onChange={e => setNewIniForm(f => ({ ...f, automatizacion: Number(e.target.value) }))}
+                              style={{
+                                width: 56, border: `1px solid ${C.borderHi}`, borderRadius: 6,
+                                padding: "4px 4px", fontSize: 13, textAlign: "center",
+                                background: C.cardAlt, color: C.textPri, fontFamily: "inherit",
+                                outline: "none",
+                              }}
+                            />
+                            <div style={{ flex: 1 }}><AutoBar value={newIniForm.automatizacion} color={bloque.color} /></div>
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 16px" }}>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <select
+                              value={newIniForm.estado}
+                              onChange={e => setNewIniForm(f => ({ ...f, estado: e.target.value }))}
+                              style={{
+                                border: `1px solid ${C.borderHi}`, borderRadius: 6, padding: "4px 8px",
+                                fontSize: 12, background: C.cardAlt, color: C.textPri, fontFamily: "inherit",
+                                outline: "none",
+                              }}
+                            >
+                              {Object.keys(estadoConfig).map(k => <option key={k} value={k}>{estadoConfig[k].label}</option>)}
+                            </select>
+                            <button
+                              onClick={() => addIniciativa(bloque.id, newIniForm)}
+                              title="Confirmar"
+                              style={{
+                                background: bloque.color, border: "none", borderRadius: 6,
+                                color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer",
+                                padding: "4px 10px", lineHeight: 1, fontFamily: "inherit",
+                                boxShadow: `0 0 8px ${bloque.color}66`,
+                              }}>✓</button>
+                            <button
+                              onClick={() => setNewIniForm(null)}
+                              title="Cancelar"
+                              style={{
+                                background: "transparent", border: `1px solid ${C.border}`,
+                                borderRadius: 6, color: C.textSec, fontSize: 14, cursor: "pointer",
+                                padding: "4px 10px", lineHeight: 1, fontFamily: "inherit",
+                              }}>✕</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+
+                    {/* ── Botón + añadir iniciativa ── */}
+                    {editMode && newIniForm === null && (
+                      <tr>
+                        <td colSpan={4} style={{ padding: "6px 12px" }}>
+                          <button
+                            onClick={() => setNewIniForm({ nombre: "", herramientas: "", automatizacion: 0, estado: "pendiente" })}
+                            style={{
+                              width: "100%", background: "transparent",
+                              border: `1px dashed ${bloque.color}55`, borderRadius: 8,
+                              color: bloque.color, fontWeight: 600, fontSize: 13,
+                              padding: "8px 0", cursor: "pointer", fontFamily: "inherit",
+                              transition: "all 0.2s", letterSpacing: 0.3,
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = `${bloque.color}12`; e.currentTarget.style.borderColor = bloque.color; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = `${bloque.color}55`; }}
+                          >
+                            + Añadir iniciativa
+                          </button>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
