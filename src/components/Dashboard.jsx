@@ -378,7 +378,21 @@ export default function Dashboard() {
                               <span style={{ fontWeight: 600, color: C.textPri }}>{ini.nombre}</span>
                             )}
                           </td>
-                          <td style={{ padding: "12px 16px", color: C.textSec, fontSize: 12 }}>{ini.herramientas}</td>
+                          <td style={{ padding: "12px 16px" }}>
+                            {editMode ? (
+                              <input
+                                value={ini.herramientas}
+                                onChange={e => updateIniciativa(bloque.id, ini.id, "herramientas", e.target.value)}
+                                style={{
+                                  width: "100%", border: `1px solid ${C.borderHi}`, borderRadius: 6,
+                                  padding: "4px 8px", fontSize: 12,
+                                  background: C.cardAlt, color: C.textSec, fontFamily: "inherit", outline: "none",
+                                }}
+                              />
+                            ) : (
+                              <span style={{ color: C.textSec, fontSize: 12 }}>{ini.herramientas}</span>
+                            )}
+                          </td>
                           <td style={{ padding: "12px 16px", minWidth: 170 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               {editMode
